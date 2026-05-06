@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-postgres
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: mock-trading-platform-dev
+
+  sources:
+    # Helm chart source
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: postgresql
+      targetRevision: "16.4.1"
+      helm:
+        valueFiles:
+          - $values/environments/dev/values/postgres.yaml
+
+    # Values source (this repo)
+    - repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

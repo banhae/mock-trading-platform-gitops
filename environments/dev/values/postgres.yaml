@@ -1,0 +1,33 @@
+# PostgreSQL dev environment values
+# Chart: bitnami/postgresql 16.4.1
+#
+# Secret contract:
+# - app-db/POSTGRES_PASSWORD
+
+global:
+  security:
+    # bitnamilegacy 이미지는 chart의 기본 whitelist에 없어서
+    # 명시적으로 허용해야 한다. legacy는 원본 bitnami 이미지와 동일하므로
+    # 보안 위험은 없다 (chart가 미리 인지 못할 뿐).
+    allowInsecureImages: true
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/postgresql
+  tag: 17.2.0-debian-12-r5
+
+auth:
+  postgresPassword: "dev-db-password-change-me"
+  database: exchange
+
+primary:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    size: 5Gi
+

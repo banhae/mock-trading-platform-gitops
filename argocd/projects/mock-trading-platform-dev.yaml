@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: mock-trading-platform-dev
+  namespace: argocd
+spec:
+  description: Exchange mock system - dev environment
+
+  sourceRepos:
+    - "https://github.com/banhae/mock-trading-platform-gitops.git"
+    - "https://github.com/banhae/mock-trading-platform-app.git"
+    - "https://charts.bitnami.com/bitnami"
+    - "https://aws.github.io/eks-charts"
+    - "https://kubernetes-sigs.github.io/metrics-server/"
+    - "https://nats-io.github.io/k8s/helm/charts/"
+    - "https://charts.external-secrets.io"
+    - "https://prometheus-community.github.io/helm-charts"
+    - "https://grafana.github.io/helm-charts"
+
+  destinations:
+    # 워크로드는 mock-trading-platform-dev namespace에 배포된다.
+    - server: https://kubernetes.default.svc
+      namespace: mock-trading-platform-dev
+    # app-of-apps: root-app이 child Application 리소스를 argocd namespace에
+    # 생성하기 위해 필요하다. (이 entry가 없으면 root-app sync 실패)
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    # cluster add-on 배포 namespace
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+    - server: https://kubernetes.default.svc
+      namespace: external-secrets
+
+  # dev 전용 wildcard 허용.
+  # 일부 chart 등이 cluster-scoped 리소스(예: ClusterRole)를 만들 수 있어
+  # 빈 배열로 두면 sync가 막힌다. 학습용 dev 한정이므로 wildcard로 단순화.
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # dev 전용 wildcard 허용.
+  # Bitnami chart들이 PodDisruptionBudget(policy), NetworkPolicy(networking.k8s.io)
+  # 등을 기본 생성하므로 group을 좁히면 sync가 막힌다.
+  # app-of-apps 패턴: argoproj.io/Application 도 이 wildcard에 포함된다.
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

@@ -1,0 +1,20 @@
+# frontend dev environment values
+# Chart source: exchange-app/charts/frontend
+#
+# Same-origin 전제:
+# - frontend는 별도 API gateway 없이 현재 origin 기준으로 /api/* 경로 호출
+# - 백엔드 라우팅은 mock-trading-platform-ingress에서 path-based rule로 처리
+
+image:
+  repository: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/mock-trading-platform/frontend
+  tag: "latest"
+  pullPolicy: Always
+
+fullnameOverride: frontend
+
+service:
+  type: ClusterIP
+  port: 80
+
+env:
+  API_BASE_PATH: "/api"

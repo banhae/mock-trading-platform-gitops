@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-infrastructure
+  namespace: mock-trading-platform-dev
+  labels:
+    grafana_dashboard: "1"
+data:
+  infrastructure.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "title": "Exchange — Infrastructure",
+      "uid": "exchange-infrastructure",
+      "schemaVersion": 38,
+      "tags": ["exchange", "infrastructure"],
+      "time": {"from": "now-1h", "to": "now"},
+      "refresh": "30s",
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Node CPU usage (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Node memory usage (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Pod CPU usage by service (cores)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"mock-trading-platform-dev\", container!=\"\"}[5m]))",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Pod memory usage by service (bytes)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"mock-trading-platform-dev\", container!=\"\"})",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "Nodes ready",
+          "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Running pods (mock-trading-platform-dev)",
+          "gridPos": {"h": 6, "w": 8, "x": 8, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "count(kube_pod_status_phase{namespace=\"mock-trading-platform-dev\", phase=\"Running\"} == 1)",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 7,
+          "type": "stat",
+          "title": "PVC bound",
+          "gridPos": {"h": 6, "w": 8, "x": 16, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "count(kube_persistentvolumeclaim_status_phase{namespace=\"mock-trading-platform-dev\", phase=\"Bound\"} == 1)",
+            "refId": "A"
+          }]
+        }
+      ]
+    }

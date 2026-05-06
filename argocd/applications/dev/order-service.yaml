@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-order-service
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: mock-trading-platform-dev
+
+  sources:
+    # Helm chart from exchange-app repo
+    - repoURL: https://github.com/banhae/mock-trading-platform-app.git
+      targetRevision: main
+      path: charts/order-service
+      helm:
+        valueFiles:
+          - $values/environments/dev/values/order-service.yaml
+
+    # Values source (this repo)
+    - repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

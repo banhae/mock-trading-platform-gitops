@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-mock-trading-platform-ingress
+  namespace: argocd
+  annotations:
+    # backend/frontend app 이후, observability 이전에 적용되도록 wave를 분리
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: mock-trading-platform-dev
+
+  sources:
+    # Helm chart from exchange-app repo
+    - repoURL: https://github.com/banhae/mock-trading-platform-app.git
+      targetRevision: main
+      path: charts/mock-trading-platform-ingress
+      helm:
+        valueFiles:
+          - $values/environments/dev/values/mock-trading-platform-ingress.yaml
+
+    # Values source (this repo)
+    - repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
+      targetRevision: main
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

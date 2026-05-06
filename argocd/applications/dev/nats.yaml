@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-nats
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://nats-io.github.io/k8s/helm/charts/
+    chart: nats
+    # NATS helm chart는 2.x에서 chart 버전이 NATS 서버 버전과 동기화됨
+    # (이전 1.x 버전들은 upstream에서 삭제됨). config.jetstream.* 스키마는
+    # 1.x/2.x 호환 유지되므로 아래 values는 그대로.
+    targetRevision: "2.12.6"
+    helm:
+      values: |
+        config:
+          jetstream:
+            enabled: true
+            fileStore:
+              enabled: true
+              pvc:
+                enabled: true
+                size: 5Gi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

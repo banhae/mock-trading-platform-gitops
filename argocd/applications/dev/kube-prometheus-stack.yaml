@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "72.6.2" # TODO(dev): 검증된 chart 버전으로 치환
+    helm:
+      values: |
+        alertmanager:
+          enabled: false
+
+        grafana:
+          service:
+            type: ClusterIP
+          # Sidecar discovers ConfigMaps with label grafana_dashboard=1 in any
+          # namespace and provisions them as dashboards. Enabled by default in
+          # this chart; pinned here for clarity, with searchNamespace=ALL so
+          # the mock-trading-platform-monitoring app can ship dashboards in mock-trading-platform-dev.
+          sidecar:
+            dashboards:
+              enabled: true
+              searchNamespace: ALL
+              label: grafana_dashboard
+              labelValue: "1"
+
+        prometheus:
+          prometheusSpec:
+            retention: 3d
+            # Discover PodMonitor / ServiceMonitor / PrometheusRule resources
+            # without requiring the chart release label, but scope discovery
+            # to the mock-trading-platform-dev namespace only. Without the namespace
+            # selectors below the chart renders empty {} selectors and this
+            # Prometheus would scrape every monitor/rule in the cluster.
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            serviceMonitorNamespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: mock-trading-platform-dev
+            podMonitorNamespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: mock-trading-platform-dev
+            ruleNamespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: mock-trading-platform-dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # prometheus-operator CRD 크기 때문에 SSA 필수. 자세한 이유는
+      # external-secrets.yaml 참고.
+      - ServerSideApply=true

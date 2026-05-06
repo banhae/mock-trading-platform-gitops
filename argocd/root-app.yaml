@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-root
+  namespace: argocd
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
+    targetRevision: main
+    # dev child applications (postgres, nats, frontend, ingress, services 등)
+    path: argocd/applications/dev
+    directory:
+      recurse: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

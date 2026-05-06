@@ -1,0 +1,19 @@
+# auth-service dev environment values
+# Chart source: exchange-app/charts/auth-service
+#
+# Secret contract:
+# - auth-jwt/JWT_SECRET는 ExternalSecret으로 생성된 Kubernetes Secret에서 공급
+
+image:
+  repository: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/mock-trading-platform/auth-service
+  tag: "latest"
+  pullPolicy: Always
+
+fullnameOverride: auth-service
+
+service:
+  type: ClusterIP
+
+env:
+  # dev 전용 리터럴. ExternalSecrets 연동 후 secretRef로 전환 예정
+  JWT_SECRET: "dev-jwt-secret-change-me"

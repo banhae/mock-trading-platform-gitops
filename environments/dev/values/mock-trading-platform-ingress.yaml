@@ -1,0 +1,47 @@
+# mock-trading-platform-ingress dev environment values
+# Chart source: exchange-app/charts/mock-trading-platform-ingress
+#
+# 단일 ALB + path-based routing
+# / 는 catch-all 이므로 항상 마지막 규칙으로 유지해야 한다.
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+  tls:
+    enabled: false
+    secretName: ""
+
+paths:
+  api:
+    - path: /api/auth
+      pathType: Prefix
+      service:
+        name: mock-trading-platform-dev-auth-service-auth-service
+        port: 8081
+    - path: /api/orders
+      pathType: Prefix
+      service:
+        name: mock-trading-platform-dev-order-service-order-service
+        port: 8080
+    - path: /api/wallet
+      pathType: Prefix
+      service:
+        name: mock-trading-platform-dev-wallet-service-wallet-service
+        port: 8082
+    - path: /api/market
+      pathType: Prefix
+      service:
+        name: mock-trading-platform-dev-marketdata-service-marketdata-service
+        port: 8083
+  frontend:
+    path: /
+    pathType: Prefix
+    service:
+      name: mock-trading-platform-dev-frontend-frontend
+      port: 80
+

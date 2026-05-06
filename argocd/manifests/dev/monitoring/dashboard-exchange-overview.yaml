@@ -1,0 +1,118 @@
+# Grafana 대시보드는 ConfigMap (label grafana_dashboard=1) 으로 배포되며
+# kube-prometheus-stack 의 grafana sidecar 가 자동으로 감지해 마운트한다.
+# (kube-prometheus-stack.yaml 의 sidecar.dashboards.searchNamespace=ALL 설정)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-exchange-overview
+  namespace: mock-trading-platform-dev
+  labels:
+    grafana_dashboard: "1"
+data:
+  exchange-overview.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "title": "Exchange — RED Overview",
+      "uid": "exchange-overview",
+      "schemaVersion": 38,
+      "tags": ["exchange", "red"],
+      "time": {"from": "now-1h", "to": "now"},
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "service",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": "label_values(http_request_duration_seconds_count{namespace=\"mock-trading-platform-dev\"}, app_kubernetes_io_name)",
+            "refresh": 2,
+            "includeAll": true,
+            "multi": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Request rate (req/s) by service",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum by (app_kubernetes_io_name) (rate(http_request_duration_seconds_count{namespace=\"mock-trading-platform-dev\", app_kubernetes_io_name=~\"$service\"}[5m]))",
+            "legendFormat": "{{app_kubernetes_io_name}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "5xx error rate (req/s) by service",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum by (app_kubernetes_io_name) (rate(http_request_duration_seconds_count{namespace=\"mock-trading-platform-dev\", status=~\"5..\", app_kubernetes_io_name=~\"$service\"}[5m]))",
+            "legendFormat": "{{app_kubernetes_io_name}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "p50 latency (s)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "histogram_quantile(0.50, sum by (le, app_kubernetes_io_name) (rate(http_request_duration_seconds_bucket{namespace=\"mock-trading-platform-dev\", app_kubernetes_io_name=~\"$service\"}[5m])))",
+            "legendFormat": "{{app_kubernetes_io_name}} p50",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "p99 latency (s)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "histogram_quantile(0.99, sum by (le, app_kubernetes_io_name) (rate(http_request_duration_seconds_bucket{namespace=\"mock-trading-platform-dev\", app_kubernetes_io_name=~\"$service\"}[5m])))",
+            "legendFormat": "{{app_kubernetes_io_name}} p99",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "Total requests in window",
+          "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum(increase(http_request_duration_seconds_count{namespace=\"mock-trading-platform-dev\"}[$__range]))",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Pods up (mock-trading-platform-dev)",
+          "gridPos": {"h": 6, "w": 8, "x": 8, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "count(up{namespace=\"mock-trading-platform-dev\"} == 1)",
+            "refId": "A"
+          }]
+        },
+        {
+          "id": 7,
+          "type": "stat",
+          "title": "Container restarts (15m)",
+          "gridPos": {"h": 6, "w": 8, "x": 16, "y": 16},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{
+            "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"mock-trading-platform-dev\"}[15m]))",
+            "refId": "A"
+          }]
+        }
+      ]
+    }

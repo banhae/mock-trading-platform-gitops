@@ -1,0 +1,74 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-loki
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    targetRevision: "6.29.0"
+    helm:
+      values: |
+        # 학습용 single-binary 모드 + filesystem 스토리지.
+        # chart 6.29.0은 schemaConfig + storage.bucketNames + commonConfig를
+        # 필수로 요구한다. 빠지면 helm template 단계에서 nil pointer로 실패함.
+        deploymentMode: SingleBinary
+
+        loki:
+          auth_enabled: false
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: filesystem
+            bucketNames:
+              chunks: chunks
+              ruler: ruler
+              admin: admin
+          schemaConfig:
+            configs:
+              - from: "2024-04-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: loki_index_
+                  period: 24h
+          pattern_ingester:
+            enabled: false
+
+        singleBinary:
+          replicas: 1
+
+        # 분산 모드 비활성화 (single-binary에서 켜지면 redundant)
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+
+        gateway:
+          enabled: false
+
+        # SingleBinary mode는 read/write/backend 분리가 없으므로 모두 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        backend:
+          replicas: 0
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

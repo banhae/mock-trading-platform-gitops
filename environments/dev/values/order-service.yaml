@@ -1,0 +1,30 @@
+# order-service dev environment values
+# Chart source: exchange-app/charts/order-service
+#
+# Secret contract:
+# - app-db/DATABASE_URL
+# - auth-jwt/JWT_SECRET
+
+image:
+  repository: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/mock-trading-platform/order-service
+  tag: "latest"
+  pullPolicy: Always
+
+fullnameOverride: order-service
+
+service:
+  type: ClusterIP
+
+# 단일 active 정합성
+replicaCount: 1
+deploymentStrategy:
+  type: Recreate
+autoscaling:
+  enabled: false
+
+env:
+  # dev 전용 리터럴. ExternalSecrets 연동 후 secretRef로 전환 예정
+  DATABASE_URL: "postgresql://postgres:dev-db-password-change-me@mock-trading-platform-dev-postgres-postgresql:5432/exchange?sslmode=disable"
+  JWT_SECRET: "dev-jwt-secret-change-me"
+  EVENT_BUS_ENABLED: "true"
+  NATS_URL: "nats://mock-trading-platform-dev-nats:4222"

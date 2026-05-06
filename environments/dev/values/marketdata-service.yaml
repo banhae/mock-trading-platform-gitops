@@ -1,0 +1,21 @@
+# marketdata-service dev environment values
+# Chart source: exchange-app/charts/marketdata-service
+#
+# Secret contract (app-nats):
+# - NATS_URL
+# - NATS_TOKEN
+
+image:
+  repository: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/mock-trading-platform/marketdata-service
+  tag: "latest"
+  pullPolicy: Always
+
+fullnameOverride: marketdata-service
+
+service:
+  type: ClusterIP
+
+env:
+  # dev 전용 리터럴. ExternalSecrets 연동 후 secretRef로 전환 예정
+  EVENT_BUS_ENABLED: "true"
+  NATS_URL: "nats://mock-trading-platform-dev-nats:4222"

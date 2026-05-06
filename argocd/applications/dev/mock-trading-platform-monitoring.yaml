@@ -1,0 +1,28 @@
+# exchange 도메인 PodMonitor / PrometheusRule / Grafana 대시보드를
+# 한 번에 동기화한다.
+# sync-wave: 6 — kube-prometheus-stack(=5) 의 CRD 설치 이후에 생성되어야 한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-monitoring
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
+    targetRevision: main
+    path: argocd/manifests/dev/monitoring
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,57 @@
+# Dev 환경용 최소 PrometheusRule.
+# - kube-prometheus-stack 에서 alertmanager 는 비활성화된 상태이므로 실제
+#   알람 발화는 Prometheus UI 의 Alerts 탭에서만 확인된다.
+# - 임계치는 학습용 dev 기준이며, 실제 운영용 SLO 는 별도로 정의해야 한다.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: exchange-app-alerts
+  namespace: mock-trading-platform-dev
+spec:
+  groups:
+    - name: exchange-http
+      interval: 30s
+      rules:
+        - alert: ExchangeHighErrorRate
+          expr: |
+            sum by (namespace, pod) (
+              rate(http_request_duration_seconds_count{status=~"5..", namespace="mock-trading-platform-dev"}[5m])
+            )
+            /
+            sum by (namespace, pod) (
+              rate(http_request_duration_seconds_count{namespace="mock-trading-platform-dev"}[5m])
+            ) > 0.01
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }} 5xx 비율이 1% 초과"
+            description: "지난 5분 동안 {{ $labels.pod }} 의 5xx 응답 비율이 {{ $value | humanizePercentage }} 입니다."
+
+        - alert: ExchangeHighLatencyP99
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum by (le, namespace, pod) (
+                rate(http_request_duration_seconds_bucket{namespace="mock-trading-platform-dev"}[5m])
+              )
+            ) > 0.5
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }} p99 지연이 500ms 초과"
+            description: "{{ $labels.pod }} 의 p99 응답시간이 {{ $value }}s 입니다."
+
+    - name: exchange-availability
+      interval: 30s
+      rules:
+        - alert: ExchangePodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="mock-trading-platform-dev"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.pod }} 컨테이너 재시작 빈번"
+            description: "지난 15분 동안 컨테이너 재시작이 {{ $value }} 회 발생했습니다."
