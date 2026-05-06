@@ -1,8 +1,8 @@
 # mock-trading-platform-gitops
 
-Exchange mock system의 GitOps 배포 구성을 관리하는 리포지토리.
+**AWS EKS 기반 Mock Trading Platform 아키텍처**의 GitOps 리포지토리. ArgoCD app-of-apps 패턴으로 환경별 워크로드를 선언적으로 배포합니다.
 
-ArgoCD app-of-apps 패턴을 사용하여 dev 환경의 인프라 및 서비스를 선언적으로 배포한다.
+이 리포는 3개 리포 중 하나로, ArgoCD Application·환경별 values·관측성 매니페스트를 담당합니다.
 
 ---
 
@@ -73,13 +73,13 @@ mock-trading-platform-gitops/
 
 `argocd/projects/mock-trading-platform-dev.yaml`은 다음을 명시적으로 허용한다:
 
-| 항목 | 값 | 이유 |
-|------|----|------|
-| destinations | `mock-trading-platform-dev` namespace | 워크로드 배포 대상 |
-| destinations | `argocd` namespace | root-app이 child Application 리소스를 argocd namespace에 만들기 위해 필요 |
-| sourceRepos | gitops repo, mock-trading-platform-app repo, bitnami, aws/metrics/nats/external-secrets chart repo | chart/values pull 허용 목록 |
-| clusterResourceWhitelist | `*/*` (wildcard, dev 한정) | add-on/chart가 만들 수 있는 cluster-scoped 리소스 허용 |
-| namespaceResourceWhitelist | `*/*` (wildcard, dev 한정) | PodDisruptionBudget(policy), NetworkPolicy(networking.k8s.io), `argoproj.io/Application` 등을 모두 포함 |
+| 항목                       | 값                                                                                                 | 이유                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| destinations               | `mock-trading-platform-dev` namespace                                                              | 워크로드 배포 대상                                                                                      |
+| destinations               | `argocd` namespace                                                                                 | root-app이 child Application 리소스를 argocd namespace에 만들기 위해 필요                               |
+| sourceRepos                | gitops repo, mock-trading-platform-app repo, bitnami, aws/metrics/nats/external-secrets chart repo | chart/values pull 허용 목록                                                                             |
+| clusterResourceWhitelist   | `*/*` (wildcard, dev 한정)                                                                         | add-on/chart가 만들 수 있는 cluster-scoped 리소스 허용                                                  |
+| namespaceResourceWhitelist | `*/*` (wildcard, dev 한정)                                                                         | PodDisruptionBudget(policy), NetworkPolicy(networking.k8s.io), `argoproj.io/Application` 등을 모두 포함 |
 
 학습용 dev 단계에서는 wildcard로 단순화한다. 운영/스테이지 단계로 넘어갈 때는 group/kind를 좁혀야 한다.
 
@@ -93,11 +93,11 @@ sources:
     targetRevision: "16.4.1"
     helm:
       valueFiles:
-        - $values/environments/dev/values/postgres.yaml  # <-- $values ref
+        - $values/environments/dev/values/postgres.yaml # <-- $values ref
 
   - repoURL: https://github.com/banhae/mock-trading-platform-gitops.git
     targetRevision: main
-    ref: values  # <-- 이 ref가 $values로 사용됨
+    ref: values # <-- 이 ref가 $values로 사용됨
 ```
 
 `ref: values`로 선언된 source가 `$values`라는 이름으로 다른 source의 `valueFiles`에서 참조된다.
@@ -118,14 +118,14 @@ sources:
 
 sync-wave annotation으로 배포 순서를 제어한다.
 
-| sync-wave | 대상 | 이유 |
-|-----------|------|------|
-| 1 | aws-load-balancer-controller, metrics-server, external-secrets, postgres, nats | 인프라/플랫폼 의존성 — 앱 서비스의 전제 조건 |
-| 2 | secret-contract, auth-service | 시크릿 생성 + 인증 서비스 — 다른 서비스에서 JWT 검증에 필요 |
-| 3 | order-service, wallet-service, marketdata-service, frontend | 비즈니스 서비스 |
-| 4 | mock-trading-platform-ingress | API/프론트엔드 단일 진입 라우팅 |
-| 5 | kube-prometheus-stack, loki | 관측성 플랫폼 (Prometheus + Grafana CRD, 로그 수집) |
-| 6 | mock-trading-platform-monitoring | 도메인 PodMonitor / PrometheusRule / Grafana 대시보드 — wave 5 의 CRD 필요 |
+| sync-wave | 대상                                                                           | 이유                                                                       |
+| --------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| 1         | aws-load-balancer-controller, metrics-server, external-secrets, postgres, nats | 인프라/플랫폼 의존성 — 앱 서비스의 전제 조건                               |
+| 2         | secret-contract, auth-service                                                  | 시크릿 생성 + 인증 서비스 — 다른 서비스에서 JWT 검증에 필요                |
+| 3         | order-service, wallet-service, marketdata-service, frontend                    | 비즈니스 서비스                                                            |
+| 4         | mock-trading-platform-ingress                                                  | API/프론트엔드 단일 진입 라우팅                                            |
+| 5         | kube-prometheus-stack, loki                                                    | 관측성 플랫폼 (Prometheus + Grafana CRD, 로그 수집)                        |
+| 6         | mock-trading-platform-monitoring                                               | 도메인 PodMonitor / PrometheusRule / Grafana 대시보드 — wave 5 의 CRD 필요 |
 
 ArgoCD는 wave 1의 리소스가 Healthy 상태가 된 후 wave 2로 진행한다.
 
@@ -159,10 +159,10 @@ mock-trading-platform-app 차트에서 명시적으로 선언되어 있다.
 
 ### Grafana 대시보드 (UID 기준)
 
-| UID | 패널 |
-|---|---|
-| `mock-trading-platform-overview` | 서비스별 req/s, 5xx rate, p50/p99 latency, 총 요청 수, Pod up, 재시작 수 |
-| `mock-trading-platform-infrastructure` | 노드 CPU/Mem, 파드 CPU/Mem, 노드/파드/PVC 카운트 |
+| UID                                    | 패널                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `mock-trading-platform-overview`       | 서비스별 req/s, 5xx rate, p50/p99 latency, 총 요청 수, Pod up, 재시작 수 |
+| `mock-trading-platform-infrastructure` | 노드 CPU/Mem, 파드 CPU/Mem, 노드/파드/PVC 카운트                         |
 
 대시보드는 ConfigMap 으로 배포되며 `kube-prometheus-stack.yaml` 의
 `grafana.sidecar.dashboards.searchNamespace=ALL` 설정에 의해
@@ -172,11 +172,11 @@ Grafana sidecar 가 자동 감지한다.
 
 `mock-trading-platform-app-alerts` PrometheusRule 이 다음 알람을 정의한다.
 
-| Alert | 조건 | for |
-|---|---|---|
-| `ExchangeHighErrorRate` | 5xx 비율 > 1% (5m rate) | 5m |
-| `ExchangeHighLatencyP99` | p99 > 500ms (5m rate) | 10m |
-| `ExchangePodCrashLooping` | 컨테이너 재시작 > 3회 (15m) | 5m |
+| Alert                     | 조건                        | for |
+| ------------------------- | --------------------------- | --- |
+| `ExchangeHighErrorRate`   | 5xx 비율 > 1% (5m rate)     | 5m  |
+| `ExchangeHighLatencyP99`  | p99 > 500ms (5m rate)       | 10m |
+| `ExchangePodCrashLooping` | 컨테이너 재시작 > 3회 (15m) | 5m  |
 
 dev 단계에서는 alertmanager 가 비활성화되어 있으므로 Prometheus UI 의
 Alerts 탭에서만 발화 상태를 확인한다. 운영으로 승격할 때 alertmanager + 알림
@@ -239,17 +239,17 @@ git push
 
 GitHub 리포 Settings > Variables and secrets > Variables에서 설정한다.
 
-| Variable | 출처 | 예시 |
-|----------|------|------|
-| `AWS_ACCOUNT_ID` | `terraform output account_id` | `123456789012` |
-| `AWS_REGION` | `terraform output region` | `ap-northeast-2` |
-| `EKS_CLUSTER_NAME` | `terraform output cluster_name` | `mock-trading-platform-dev` |
-| `AWS_VPC_ID` | `terraform output vpc_id` | `vpc-0abc123def` |
-| `AWS_LBC_IRSA_ROLE_ARN` | `terraform output alb_controller_role_arn` | `arn:aws:iam::...:role/...` |
-| `NATS_CHART_VERSION` | `helm search repo nats/nats` | `2.12.6` |
-| `KUBE_PROMETHEUS_STACK_CHART_VERSION` | `helm search repo prometheus-community/...` | `72.6.2` |
-| `LOKI_CHART_VERSION` | `helm search repo grafana/loki` | `6.29.0` |
-| `IMAGE_TAG` | CI 빌드 결과 | `sha-abc1234` |
+| Variable                              | 출처                                        | 예시                        |
+| ------------------------------------- | ------------------------------------------- | --------------------------- |
+| `AWS_ACCOUNT_ID`                      | `terraform output account_id`               | `123456789012`              |
+| `AWS_REGION`                          | `terraform output region`                   | `ap-northeast-2`            |
+| `EKS_CLUSTER_NAME`                    | `terraform output cluster_name`             | `mock-trading-platform-dev` |
+| `AWS_VPC_ID`                          | `terraform output vpc_id`                   | `vpc-0abc123def`            |
+| `AWS_LBC_IRSA_ROLE_ARN`               | `terraform output alb_controller_role_arn`  | `arn:aws:iam::...:role/...` |
+| `NATS_CHART_VERSION`                  | `helm search repo nats/nats`                | `2.12.6`                    |
+| `KUBE_PROMETHEUS_STACK_CHART_VERSION` | `helm search repo prometheus-community/...` | `72.6.2`                    |
+| `LOKI_CHART_VERSION`                  | `helm search repo grafana/loki`             | `6.29.0`                    |
+| `IMAGE_TAG`                           | CI 빌드 결과                                | `sha-abc1234`               |
 
 전체 목록과 상세 설명은 `.env.example`을 참조한다.
 
@@ -406,21 +406,27 @@ environments/dev/values/
 ## Troubleshooting
 
 ### root-app sync 실패: "Application is not permitted to use project"
+
 원인: AppProject의 destinations에 `argocd` namespace가 빠졌거나 namespaceResourceWhitelist에 `argoproj.io/Application`이 없음.
 조치: `argocd/projects/mock-trading-platform-dev.yaml`을 다시 적용하고 6단계 검증 명령으로 확인.
 
 ### child Application sync 실패: ImagePullBackOff
+
 원인: ECR 이미지 경로 잘못. placeholder 미치환이거나 prefix `exchange/`가 빠짐.
 조치:
+
 ```bash
 kubectl -n mock-trading-platform-dev describe pod <pod-name> | grep -i image:
 # 기대 형식: <account>.dkr.ecr.<region>.amazonaws.com/mock-trading-platform/<service>:<tag>
 ```
+
 - `.env` 값을 확인하고 `./scripts/bootstrap-values.sh`를 다시 실행
 - 노드의 IRSA/instance profile에 ECR pull 권한이 있는지 mock-trading-platform-infra에서 확인
 
 ### order-service: DB 연결 실패
+
 원인: postgres release 이름과 DATABASE_URL의 host 불일치, 또는 비밀번호 불일치.
+
 - host는 반드시 `mock-trading-platform-dev-postgres-postgresql` (= ArgoCD Application name `mock-trading-platform-dev-postgres` + Bitnami chart suffix `-postgresql`)
 - 비밀번호는 `environments/dev/values/postgres.yaml`의 `auth.postgresPassword`와 정확히 일치해야 함
 
@@ -430,10 +436,12 @@ kubectl -n mock-trading-platform-dev exec -it <order-pod> -- env | grep DATABASE
 ```
 
 ### Bitnami chart 버전 pull 실패
+
 원인: pin된 chart 버전이 repo에서 제거됨.
 조치: `argocd/applications/dev/postgres.yaml`의 `targetRevision`을 현재 사용 가능한 가까운 버전으로 갱신.
 
 ### NATS chart 버전 오류 (1.x → 2.x 전환 이슈)
+
 원인: 과거에 사용하던 NATS chart 1.x 버전이 upstream에서 제거되어 pull 실패.
 조치:
 
@@ -448,5 +456,6 @@ helm search repo nats/nats --versions | head -20
 - 반영 후 `argocd app sync mock-trading-platform-dev-nats`
 
 ### app-of-apps에서 새 Application이 안 보임
+
 원인: root-app이 디렉터리 변경을 감지하지 못함.
 조치: `argocd app sync mock-trading-platform-dev-root` 수동 sync.
