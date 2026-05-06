@@ -9,7 +9,7 @@ spec:
   project: mock-trading-platform-dev
 
   sources:
-    # Helm chart from exchange-app repo
+    # Helm chart from mock-trading-platform-app repo
     - repoURL: https://github.com/banhae/mock-trading-platform-app.git
       targetRevision: main
       path: charts/auth-service

@@ -1,5 +1,5 @@
 # mock-trading-platform-ingress dev environment values
-# Chart source: exchange-app/charts/mock-trading-platform-ingress
+# Chart source: mock-trading-platform-app/charts/mock-trading-platform-ingress
 #
 # 단일 ALB + path-based routing
 # / 는 catch-all 이므로 항상 마지막 규칙으로 유지해야 한다.

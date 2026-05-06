@@ -4,17 +4,17 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: dashboard-exchange-overview
+  name: dashboard-mock-trading-platform-overview
   namespace: mock-trading-platform-dev
   labels:
     grafana_dashboard: "1"
 data:
-  exchange-overview.json: |
+  mock-trading-platform-overview.json: |
     {
       "annotations": {"list": []},
       "editable": true,
       "title": "Exchange — RED Overview",
-      "uid": "exchange-overview",
+      "uid": "mock-trading-platform-overview",
       "schemaVersion": 38,
       "tags": ["exchange", "red"],
       "time": {"from": "now-1h", "to": "now"},

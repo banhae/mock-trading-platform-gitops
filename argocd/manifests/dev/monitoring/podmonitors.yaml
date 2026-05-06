@@ -1,5 +1,5 @@
 # PodMonitor 4종.
-# exchange-app Helm 차트는 selectorLabel `app.kubernetes.io/name: <chart-name>` 을
+# mock-trading-platform-app Helm 차트는 selectorLabel `app.kubernetes.io/name: <chart-name>` 을
 # 자동으로 부착한다 (helpers _helpers.tpl). 컨테이너 포트는 `name: http` 로
 # 노출되어 있으므로 동일 포트의 /metrics 를 스크레이프한다.
 apiVersion: monitoring.coreos.com/v1

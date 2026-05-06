@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # ──────────────────────────────────────────────────────────
-# exchange-gitops placeholder 치환 스크립트
+# mock-trading-platform-gitops placeholder 치환 스크립트
 #
 # 사용법 A — .env 파일:
 #   cp .env.example .env && vi .env
 #   ./scripts/bootstrap-values.sh
 #
 # 사용법 B — Terraform output 자동 읽기:
-#   ./scripts/bootstrap-values.sh --from-terraform ../exchange-infra/envs/dev
+#   ./scripts/bootstrap-values.sh --from-terraform ../mock-trading-platform-infra/envs/dev
 #   (Terraform output 외 값은 .env에서 보충)
 # ──────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ verify_helm_chart() {
 
 # ── Terraform 자동 읽기 모드 ──
 if [[ "${1:-}" == "--from-terraform" ]]; then
-  INFRA_DIR="${2:?사용법: $0 --from-terraform <exchange-infra/envs/dev 경로>}"
+  INFRA_DIR="${2:?사용법: $0 --from-terraform <mock-trading-platform-infra/envs/dev 경로>}"
   echo "▶ Terraform output에서 값을 읽습니다: ${INFRA_DIR}"
 
   TF_ACCOUNT_ID=$(terraform -chdir="$INFRA_DIR" output -raw account_id)

@@ -31,7 +31,7 @@
 
 이 프로젝트는 아래 3개 리포지토리로 분리한다.
 
-### 1. exchange-infra
+### 1. mock-trading-platform-infra
 책임:
 - AWS 인프라 생성
 - VPC, subnet, security group, IAM, EKS, ECR
@@ -49,7 +49,7 @@
 - Helm chart
 - ArgoCD application 정의
 
-### 2. exchange-app
+### 2. mock-trading-platform-app
 책임:
 - 애플리케이션 소스코드
 - Dockerfile
@@ -68,7 +68,7 @@
 - Terraform
 - ArgoCD root app / environment wiring
 
-### 3. exchange-gitops
+### 3. mock-trading-platform-gitops
 책임:
 - ArgoCD Application 정의
 - AppProject

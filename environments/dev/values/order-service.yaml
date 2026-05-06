@@ -1,5 +1,5 @@
 # order-service dev environment values
-# Chart source: exchange-app/charts/order-service
+# Chart source: mock-trading-platform-app/charts/order-service
 #
 # Secret contract:
 # - app-db/DATABASE_URL

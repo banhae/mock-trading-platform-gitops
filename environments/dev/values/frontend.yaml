@@ -1,5 +1,5 @@
 # frontend dev environment values
-# Chart source: exchange-app/charts/frontend
+# Chart source: mock-trading-platform-app/charts/frontend
 #
 # Same-origin 전제:
 # - frontend는 별도 API gateway 없이 현재 origin 기준으로 /api/* 경로 호출

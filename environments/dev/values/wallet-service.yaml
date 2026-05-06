@@ -1,5 +1,5 @@
 # wallet-service dev environment values
-# Chart source: exchange-app/charts/wallet-service
+# Chart source: mock-trading-platform-app/charts/wallet-service
 #
 # Secret contract (app-nats):
 # - NATS_URL

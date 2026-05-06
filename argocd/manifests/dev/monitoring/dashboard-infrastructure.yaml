@@ -11,7 +11,7 @@ data:
       "annotations": {"list": []},
       "editable": true,
       "title": "Exchange — Infrastructure",
-      "uid": "exchange-infrastructure",
+      "uid": "mock-trading-platform-infrastructure",
       "schemaVersion": 38,
       "tags": ["exchange", "infrastructure"],
       "time": {"from": "now-1h", "to": "now"},

@@ -1,5 +1,5 @@
 # marketdata-service dev environment values
-# Chart source: exchange-app/charts/marketdata-service
+# Chart source: mock-trading-platform-app/charts/marketdata-service
 #
 # Secret contract (app-nats):
 # - NATS_URL

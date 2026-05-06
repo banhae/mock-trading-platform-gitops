@@ -5,7 +5,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: exchange-app-alerts
+  name: mock-trading-platform-app-alerts
   namespace: mock-trading-platform-dev
 spec:
   groups:

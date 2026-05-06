@@ -1,5 +1,5 @@
 # auth-service dev environment values
-# Chart source: exchange-app/charts/auth-service
+# Chart source: mock-trading-platform-app/charts/auth-service
 #
 # Secret contract:
 # - auth-jwt/JWT_SECRET는 ExternalSecret으로 생성된 Kubernetes Secret에서 공급
