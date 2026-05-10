@@ -10,10 +10,10 @@ data:
     {
       "annotations": {"list": []},
       "editable": true,
-      "title": "Exchange — Infrastructure",
+      "title": "Mock Trading Platform — Infrastructure",
       "uid": "mock-trading-platform-infrastructure",
       "schemaVersion": 38,
-      "tags": ["exchange", "infrastructure"],
+      "tags": ["mock-trading-platform", "infrastructure"],
       "time": {"from": "now-1h", "to": "now"},
       "refresh": "30s",
       "panels": [

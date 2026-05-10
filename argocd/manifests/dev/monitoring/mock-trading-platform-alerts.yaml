@@ -9,10 +9,10 @@ metadata:
   namespace: mock-trading-platform-dev
 spec:
   groups:
-    - name: exchange-http
+    - name: mock-trading-platform-http
       interval: 30s
       rules:
-        - alert: ExchangeHighErrorRate
+        - alert: MockTradingPlatformHighErrorRate
           expr: |
             sum by (namespace, pod) (
               rate(http_request_duration_seconds_count{status=~"5..", namespace="mock-trading-platform-dev"}[5m])
@@ -28,7 +28,7 @@ spec:
             summary: "{{ $labels.pod }} 5xx 비율이 1% 초과"
             description: "지난 5분 동안 {{ $labels.pod }} 의 5xx 응답 비율이 {{ $value | humanizePercentage }} 입니다."
 
-        - alert: ExchangeHighLatencyP99
+        - alert: MockTradingPlatformHighLatencyP99
           expr: |
             histogram_quantile(
               0.99,
@@ -43,10 +43,10 @@ spec:
             summary: "{{ $labels.pod }} p99 지연이 500ms 초과"
             description: "{{ $labels.pod }} 의 p99 응답시간이 {{ $value }}s 입니다."
 
-    - name: exchange-availability
+    - name: mock-trading-platform-availability
       interval: 30s
       rules:
-        - alert: ExchangePodCrashLooping
+        - alert: MockTradingPlatformPodCrashLooping
           expr: |
             increase(kube_pod_container_status_restarts_total{namespace="mock-trading-platform-dev"}[15m]) > 3
           for: 5m
