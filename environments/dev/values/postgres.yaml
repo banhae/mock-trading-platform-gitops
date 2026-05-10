@@ -18,7 +18,7 @@ image:
 
 auth:
   postgresPassword: "dev-db-password-change-me"
-  database: exchange
+  database: mock_trading_platform
 
 primary:
   resources:

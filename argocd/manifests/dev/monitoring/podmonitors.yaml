@@ -5,7 +5,7 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: exchange-auth-service
+  name: mock-trading-platform-auth-service
   namespace: mock-trading-platform-dev
 spec:
   selector:
@@ -19,7 +19,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: exchange-order-service
+  name: mock-trading-platform-order-service
   namespace: mock-trading-platform-dev
 spec:
   selector:
@@ -33,7 +33,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: exchange-wallet-service
+  name: mock-trading-platform-wallet-service
   namespace: mock-trading-platform-dev
 spec:
   selector:
@@ -47,7 +47,7 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: exchange-marketdata-service
+  name: mock-trading-platform-marketdata-service
   namespace: mock-trading-platform-dev
 spec:
   selector:

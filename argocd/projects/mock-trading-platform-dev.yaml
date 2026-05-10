@@ -4,7 +4,7 @@ metadata:
   name: mock-trading-platform-dev
   namespace: argocd
 spec:
-  description: Exchange mock system - dev environment
+  description: Mock trading platform - dev environment
 
   sourceRepos:
     - "https://github.com/banhae/mock-trading-platform-gitops.git"

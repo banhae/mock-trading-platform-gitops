@@ -116,14 +116,14 @@ find "$REPO_ROOT" -type f -name '*.yaml' -not -path '*/.git/*' | xargs sed -i \
   -e "s|<NATS_CHART_VERSION>|${NATS_CHART_VERSION}|g" \
   -e "s|<KUBE_PROMETHEUS_STACK_CHART_VERSION>|${KUBE_PROMETHEUS_STACK_CHART_VERSION}|g" \
   -e "s|<LOKI_CHART_VERSION>|${LOKI_CHART_VERSION}|g" \
-  -e "s|<SM_PATH_AUTH_JWT>|${SM_PATH_AUTH_JWT:-exchange/dev/auth-jwt}|g" \
-  -e "s|<SM_PATH_APP_DB>|${SM_PATH_APP_DB:-exchange/dev/app-db}|g" \
-  -e "s|<SM_PATH_APP_NATS>|${SM_PATH_APP_NATS:-exchange/dev/app-nats}|g" \
+  -e "s|<SM_PATH_AUTH_JWT>|${SM_PATH_AUTH_JWT:-mock-trading-platform/dev/auth-jwt}|g" \
+  -e "s|<SM_PATH_APP_DB>|${SM_PATH_APP_DB:-mock-trading-platform/dev/app-db}|g" \
+  -e "s|<SM_PATH_APP_NATS>|${SM_PATH_APP_NATS:-mock-trading-platform/dev/app-nats}|g" \
   -e "s|<DEV_PUBLIC_HOSTNAME>|${DEV_PUBLIC_HOSTNAME:-}|g" \
   -e "s|<IMAGE_TAG>|${IMAGE_TAG:-latest}|g" \
   -e "s|<DEV_JWT_SECRET>|${DEV_JWT_SECRET:-dev-jwt-secret-change-me}|g" \
   -e "s|<DEV_DB_PASSWORD>|${DEV_DB_PASSWORD:-dev-db-password-change-me}|g" \
-  -e "s|<DEV_DATABASE_URL>|${DEV_DATABASE_URL:-postgresql://postgres:dev-db-password-change-me@mock-trading-platform-dev-postgres-postgresql:5432/exchange?sslmode=disable}|g" \
+  -e "s|<DEV_DATABASE_URL>|${DEV_DATABASE_URL:-postgresql://postgres:dev-db-password-change-me@mock-trading-platform-dev-postgres-postgresql:5432/mock_trading_platform?sslmode=disable}|g" \
   -e "s|<DEV_NATS_URL>|${DEV_NATS_URL:-nats://mock-trading-platform-dev-nats:4222}|g" \
   -e "s|<DEV_NATS_TOKEN>|${DEV_NATS_TOKEN:-}|g"
 

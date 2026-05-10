@@ -225,9 +225,9 @@ Grafana sidecar 가 자동 감지한다.
 
 | Alert                     | 조건                        | for |
 | ------------------------- | --------------------------- | --- |
-| `ExchangeHighErrorRate`   | 5xx 비율 > 1% (5m rate)     | 5m  |
-| `ExchangeHighLatencyP99`  | p99 > 500ms (5m rate)       | 10m |
-| `ExchangePodCrashLooping` | 컨테이너 재시작 > 3회 (15m) | 5m  |
+| `MockTradingPlatformHighErrorRate`   | 5xx 비율 > 1% (5m rate)     | 5m  |
+| `MockTradingPlatformHighLatencyP99`  | p99 > 500ms (5m rate)       | 10m |
+| `MockTradingPlatformPodCrashLooping` | 컨테이너 재시작 > 3회 (15m) | 5m  |
 
 dev 단계에서는 alertmanager 가 비활성화되어 있으므로 Prometheus UI 의
 Alerts 탭에서만 발화 상태를 확인한다. 운영으로 승격할 때 alertmanager + 알림
@@ -242,7 +242,7 @@ kubectl -n mock-trading-platform-dev get secret mock-trading-platform-dev-kube-p
   -o jsonpath='{.data.admin-password}' | base64 -d ; echo
 ```
 
-브라우저: `http://localhost:3000` → Dashboards → Exchange — RED Overview / Infrastructure
+브라우저: `http://localhost:3000` → Dashboards → Mock Trading Platform — RED Overview / Infrastructure
 
 ---
 
@@ -463,7 +463,7 @@ environments/dev/values/
 
 ### child Application sync 실패: ImagePullBackOff
 
-원인: ECR 이미지 경로 잘못. placeholder 미치환이거나 prefix `exchange/`가 빠짐.
+원인: ECR 이미지 경로 잘못. placeholder 미치환이거나 prefix `mock-trading-platform/`가 빠짐.
 조치:
 
 ```bash
