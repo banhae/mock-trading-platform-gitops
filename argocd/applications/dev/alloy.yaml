@@ -1,0 +1,99 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mock-trading-platform-dev-alloy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: mock-trading-platform-dev
+
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: alloy
+    targetRevision: "0.9.2" # TODO(dev): 검증된 chart 버전으로 치환
+    helm:
+      values: |
+        # grafana/loki chart 6.x 는 ingester 만 책임지므로 별도 log collector
+        # 가 필수다. 이 Application 이 없으면 Loki 는 canary self-test 로그만
+        # 수신한다. Alloy DaemonSet 이 자기 노드의 파드 stdout 을 K8s API 로
+        # 수집해 Loki push endpoint 으로 전달한다.
+        controller:
+          type: daemonset
+
+        alloy:
+          # NODE_NAME 을 spec.nodeName 으로 주입. discovery.kubernetes 가
+          # 자기 노드 파드만 발견하도록 field selector 에서 참조한다.
+          # 이게 없으면 DaemonSet pod N개가 클러스터 전체 파드를 각자 발견
+          # → 같은 로그를 N번 fetch → Loki 에 N배 중복 ingest, kube-apiserver
+          # 부하도 N배.
+          extraEnv:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+
+          configMap:
+            create: true
+            content: |-
+              // 자기 노드의 파드만 발견 — DaemonSet 중복 ingest 방지.
+              // mock-trading-platform-dev 네임스페이스 한정 — cardinality 관리.
+              discovery.kubernetes "pods" {
+                role = "pod"
+                selectors {
+                  role  = "pod"
+                  field = "spec.nodeName=" + sys.env("NODE_NAME")
+                }
+              }
+
+              discovery.relabel "pod_logs" {
+                targets = discovery.kubernetes.pods.targets
+
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace"]
+                  regex         = "mock-trading-platform-dev"
+                  action        = "keep"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace"]
+                  target_label  = "namespace"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_name"]
+                  target_label  = "pod"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_container_name"]
+                  target_label  = "container"
+                }
+                rule {
+                  // PodMonitor 와 동일한 'app' 라벨 → 메트릭/로그 상관 가능.
+                  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+                  target_label  = "app"
+                }
+              }
+
+              loki.source.kubernetes "pods" {
+                targets    = discovery.relabel.pod_logs.output
+                forward_to = [loki.write.default.receiver]
+              }
+
+              loki.write "default" {
+                endpoint {
+                  // SingleBinary 모드 Loki 의 push endpoint
+                  // (gateway disabled, service 이름 = release name).
+                  url = "http://mock-trading-platform-dev-loki:3100/loki/api/v1/push"
+                }
+              }
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mock-trading-platform-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

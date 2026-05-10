@@ -43,6 +43,7 @@ mock-trading-platform-gitops/
 │           ├── mock-trading-platform-ingress.yaml      # sync-wave 4
 │           ├── kube-prometheus-stack.yaml # sync-wave 5
 │           ├── loki.yaml                  # sync-wave 5
+│           ├── alloy.yaml                 # sync-wave 5 (log collector → Loki)
 │           └── mock-trading-platform-monitoring.yaml   # sync-wave 6 (PodMonitor/Rule/Dashboard)
 └── environments/
     └── dev/
@@ -124,7 +125,7 @@ sync-wave annotation으로 배포 순서를 제어한다.
 | 2         | secret-contract, auth-service                                                  | 시크릿 생성 + 인증 서비스 — 다른 서비스에서 JWT 검증에 필요                |
 | 3         | order-service, wallet-service, marketdata-service, frontend                    | 비즈니스 서비스                                                            |
 | 4         | mock-trading-platform-ingress                                                  | API/프론트엔드 단일 진입 라우팅                                            |
-| 5         | kube-prometheus-stack, loki                                                    | 관측성 플랫폼 (Prometheus + Grafana CRD, 로그 수집)                        |
+| 5         | kube-prometheus-stack, loki, alloy                                             | 관측성 플랫폼 (Prometheus + Grafana CRD, Loki ingester, Alloy 로그 수집기) |
 | 6         | mock-trading-platform-monitoring                                               | 도메인 PodMonitor / PrometheusRule / Grafana 대시보드 — wave 5 의 CRD 필요 |
 
 ArgoCD는 wave 1의 리소스가 Healthy 상태가 된 후 wave 2로 진행한다.
@@ -149,6 +150,56 @@ Prometheus (kube-prometheus-stack, retention=3d)
   ├──▶ PrometheusRule  →  알람 (UI Alerts 탭, alertmanager 미사용)
   └──▶ Grafana sidecar  →  ConfigMap(label grafana_dashboard=1) 자동 마운트
 ```
+
+### 로그 수집 흐름
+
+```
+mock-trading-platform-dev 네임스페이스의 모든 파드 stdout
+  │
+  ▼
+Alloy DaemonSet (grafana/alloy chart, 노드당 1pod)
+  │  discovery.kubernetes  →  spec.nodeName 필드 셀렉터로 자기 노드 파드만
+  │                            발견 (DaemonSet pod 간 중복 ingest 방지)
+  │  discovery.relabel     →  namespace/pod/container/app 라벨 부착,
+  │                            mock-trading-platform-dev 외 namespace drop
+  │  loki.source.kubernetes →  K8s API 로 컨테이너 로그 stream
+  ▼
+Loki (SingleBinary 모드, filesystem 스토리지)
+  │
+  ▼
+Grafana (Loki 데이터소스 자동 등록 by kube-prometheus-stack values)
+  → Explore 탭에서 LogQL 쿼리
+```
+
+라벨 셋: `namespace`, `pod`, `container`, `app` (= `app.kubernetes.io/name`).
+`app` 라벨은 PodMonitor 가 사용하는 라벨과 동일하므로 Grafana 한 화면에서
+같은 서비스의 메트릭 패널과 로그 패널을 함께 묶어볼 수 있다.
+
+DaemonSet 이 자신의 노드에서만 파드를 발견하도록, downward API 로
+`spec.nodeName` 을 `NODE_NAME` 환경변수로 주입하고 `discovery.kubernetes`
+의 `selectors.field` 에서 참조한다. 이 필터가 없으면 N개 노드에서 같은
+로그를 N번 읽어 Loki 에 N배로 쌓이고 kube-apiserver 부하도 N배가 된다.
+
+> dev 한정으로 `loki.source.kubernetes` (K8s API 경유) 를 사용한다.
+> 운영에서는 노드의 `/var/log/pods` 를 직접 읽는 `loki.source.file` 패턴이
+> kube-apiserver 부담이 적어 일반적이다.
+
+### LogQL 예시
+
+```logql
+# auth-service 의 ERROR 로그
+{namespace="mock-trading-platform-dev", app="auth-service"} |= "ERROR"
+
+# 모든 서비스의 5xx 응답 (구조화 로그 가정)
+{namespace="mock-trading-platform-dev"} |~ "status=5\\d{2}"
+
+# 특정 컨테이너의 최근 로그 (최신 메시지 추출)
+{namespace="mock-trading-platform-dev", container="order-service"} | line_format "{{.message}}"
+```
+
+Grafana 포트포워드 후 좌측 **Explore** → 데이터소스 드롭다운에서 `Loki` 선택
+→ 위 쿼리 실행. 데이터소스가 보이지 않으면 Connections → Data sources 에서
+`Loki` 항목이 자동 등록되었는지 확인한다.
 
 ### PodMonitor 라벨 매칭
 
@@ -455,7 +506,30 @@ helm search repo nats/nats --versions | head -20
 - `./scripts/bootstrap-values.sh` 재실행 후 `argocd/applications/dev/nats.yaml`의 `targetRevision` 확인
 - 반영 후 `argocd app sync mock-trading-platform-dev-nats`
 
-### app-of-apps에서 새 Application이 안 보임
+### Loki 에 어플리케이션 로그가 안 들어옴 (canary 만 보임)
+원인: log collector(Alloy / Promtail) 가 배포되지 않았거나, Alloy 가 Loki push endpoint 에 도달 못 함.
+조치:
+```bash
+# Alloy 파드가 떠있는지 (DaemonSet)
+kubectl -n mock-trading-platform-dev get pods -l app.kubernetes.io/name=alloy
 
+# Alloy 로그에서 push 에러 확인
+kubectl -n mock-trading-platform-dev logs ds/mock-trading-platform-dev-alloy | grep -iE "error|loki"
+
+# Loki service 이름 확인 — alloy.yaml 의 url 과 일치해야 함
+kubectl -n mock-trading-platform-dev get svc | grep loki
+# 기대: mock-trading-platform-dev-loki  ClusterIP  ...  3100/TCP
+```
+
+### Grafana Explore 에서 Loki 데이터소스가 안 보임
+원인: `kube-prometheus-stack.yaml` 의 `grafana.additionalDataSources` 누락 또는 sync 미반영.
+조치:
+```bash
+argocd app sync mock-trading-platform-dev-kube-prometheus-stack
+# 동기화 후 Grafana 재시작 (sidecar 가 datasource 재로드)
+kubectl -n mock-trading-platform-dev rollout restart deploy/mock-trading-platform-dev-kube-prometheus-stack-grafana
+```
+
+### app-of-apps에서 새 Application이 안 보임
 원인: root-app이 디렉터리 변경을 감지하지 못함.
 조치: `argocd app sync mock-trading-platform-dev-root` 수동 sync.
