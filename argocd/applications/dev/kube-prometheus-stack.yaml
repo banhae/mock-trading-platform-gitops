@@ -30,6 +30,17 @@ spec:
               searchNamespace: ALL
               label: grafana_dashboard
               labelValue: "1"
+          # Loki 데이터소스 자동 등록. Prometheus 데이터소스는 chart 가 자동
+          # 으로 등록하지만 Loki 는 별도 chart 라 여기서 명시한다. URL 은
+          # SingleBinary 모드 + gateway disabled 기준 cluster-internal 주소.
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              uid: loki
+              access: proxy
+              url: http://mock-trading-platform-dev-loki:3100
+              jsonData:
+                maxLines: 1000
 
         prometheus:
           prometheusSpec:
