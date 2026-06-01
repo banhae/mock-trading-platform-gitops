@@ -11,7 +11,7 @@ spec:
   sources:
     # Helm chart from mock-trading-platform-app repo
     - repoURL: https://github.com/banhae/mock-trading-platform-app.git
-      targetRevision: main
+      targetRevision: a03d8a6
       path: charts/wallet-service
       helm:
         valueFiles:
