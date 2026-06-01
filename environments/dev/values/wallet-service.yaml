@@ -7,8 +7,8 @@
 
 image:
   repository: <AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/mock-trading-platform/wallet-service
-  tag: "latest"
-  pullPolicy: Always
+  tag: "sha-a03d8a6"
+  pullPolicy: IfNotPresent
 
 fullnameOverride: wallet-service
 
