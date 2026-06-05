@@ -15,6 +15,10 @@ mock-trading-platform-gitops/
 │   └── bootstrap-values.sh                # 플레이스홀더 치환 스크립트
 ├── argocd/
 │   ├── root-app.yaml                      # app-of-apps 진입점
+│   ├── repositories/                      # ArgoCD repo 등록 Secret (부트스트랩 전용)
+│   │   ├── README.md
+│   │   ├── mock-trading-platform-app.yaml.tmpl    # placeholder template (commit)
+│   │   └── mock-trading-platform-gitops.yaml.tmpl # 렌더링된 *.yaml 은 gitignore
 │   ├── projects/
 │   │   └── mock-trading-platform-dev.yaml              # AppProject 정의
 │   ├── manifests/
@@ -336,10 +340,19 @@ argocd login localhost:8080 --username admin --password <위에서 확인한 비
 
 ### 3. Git 리포지토리 등록 (private repo인 경우)
 
+`argocd/repositories/*.yaml.tmpl` 이 declarative repository Secret template 이다.
+bootstrap 스크립트가 `.env` 의 `GITHUB_USER` / `GITHUB_PAT` 로 치환해
+같은 디렉터리에 `*.yaml` 을 생성한다 (PAT 평문 포함, gitignored). 한 번에 apply.
+
 ```bash
-argocd repo add https://github.com/banhae/mock-trading-platform-gitops.git --username <user> --password <token>
-argocd repo add https://github.com/banhae/mock-trading-platform-app.git --username <user> --password <token>
+kubectl apply -n argocd -f argocd/repositories/
+argocd repo list                                  # Successful 두 줄 확인
 ```
+
+> PAT 회전 시: `.env` 의 `GITHUB_PAT` 만 갱신 → bootstrap → 위 apply 재실행.
+> 생성된 `argocd/repositories/*.yaml` 은 절대 commit 하지 말 것 — `.gitignore`
+> 가 1차 방어선이지만 `git status` 로도 한번 더 확인한다.
+> public repo 라면 이 단계는 생략 가능하다.
 
 ### 4. AppProject 생성
 

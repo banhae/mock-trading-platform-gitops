@@ -79,7 +79,7 @@ else
 fi
 
 # ── 필수 값 검증 ──
-REQUIRED=(AWS_ACCOUNT_ID AWS_REGION EKS_CLUSTER_NAME AWS_VPC_ID AWS_LBC_IRSA_ROLE_ARN)
+REQUIRED=(AWS_ACCOUNT_ID AWS_REGION EKS_CLUSTER_NAME AWS_VPC_ID AWS_LBC_IRSA_ROLE_ARN GITHUB_USER GITHUB_PAT)
 MISSING=()
 for var in "${REQUIRED[@]}"; do
   [[ -z "${!var:-}" ]] && MISSING+=("$var")
@@ -127,6 +127,25 @@ find "$REPO_ROOT" -type f -name '*.yaml' -not -path '*/.git/*' | xargs sed -i \
   -e "s|<DEV_NATS_URL>|${DEV_NATS_URL:-nats://mock-trading-platform-dev-nats:4222}|g" \
   -e "s|<DEV_NATS_TOKEN>|${DEV_NATS_TOKEN:-}|g"
 
+# ── ArgoCD repository Secret template 렌더링 ──
+# argocd/repositories/*.yaml.tmpl → 같은 디렉터리의 *.yaml.
+# 결과물은 PAT 평문을 담으므로 .gitignore 로 추적 제외돼 있다.
+# 위 sed 패스는 '*.yaml' 만 잡으므로 .tmpl 원본은 건드리지 않는다.
+REPO_TMPL_DIR="${REPO_ROOT}/argocd/repositories"
+if [[ -d "$REPO_TMPL_DIR" ]]; then
+  echo "▶ ArgoCD repository Secret 렌더링"
+  shopt -s nullglob
+  for tmpl in "$REPO_TMPL_DIR"/*.yaml.tmpl; do
+    out="${tmpl%.tmpl}"
+    sed \
+      -e "s|<GITHUB_USER>|${GITHUB_USER}|g" \
+      -e "s|<GITHUB_PAT>|${GITHUB_PAT}|g" \
+      "$tmpl" > "$out"
+    echo "  ✓ $(basename "$out")"
+  done
+  shopt -u nullglob
+fi
+
 echo ""
 echo "✔ 치환 완료. 변경된 파일:"
 cd "$REPO_ROOT" && git diff --name-only
@@ -135,3 +154,4 @@ echo "다음 단계:"
 echo "  git diff                                    # 변경 내용 확인"
 echo "  git commit -am 'bootstrap: set dev values'  # 커밋"
 echo "  git push                                    # ArgoCD 반영"
+echo "  kubectl apply -n argocd -f argocd/repositories/  # repo 등록"

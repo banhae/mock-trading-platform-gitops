@@ -15,3 +15,8 @@ Thumbs.db
 
 # Bootstrap env (contains real AWS values)
 .env
+
+# ArgoCD repository Secret 렌더링 결과 (PAT 평문 포함)
+# *.yaml.tmpl 원본과 README 는 계속 추적한다.
+argocd/repositories/*.yaml
+!argocd/repositories/*.yaml.tmpl
