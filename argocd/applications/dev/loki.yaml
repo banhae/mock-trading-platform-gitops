@@ -61,6 +61,17 @@ spec:
         backend:
           replicas: 0
 
+        # loki-canary 비활성화: t3.medium max-pods=17 cap 으로 zone 2c 노드가
+        # saturated → Alloy DaemonSet pod 가 Pending. canary DaemonSet 1개
+        # 끄면 슬롯 확보. dev 환경에서 24/7 canary 가치 < capacity headroom.
+        # 헬스체크는 README Observability 섹션 참고.
+        lokiCanary:
+          enabled: false
+
+        # helm test pod 가 canary endpoint 를 호출하므로 같이 비활성화
+        test:
+          enabled: false
+
   destination:
     server: https://kubernetes.default.svc
     namespace: mock-trading-platform-dev
