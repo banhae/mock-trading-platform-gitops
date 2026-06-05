@@ -19,9 +19,10 @@ mock-trading-platform-gitops/
 │   │   └── mock-trading-platform-dev.yaml              # AppProject 정의
 │   ├── manifests/
 │   │   └── dev/
-│   │       ├── external-secrets/
-│   │       │   ├── secret-store.yaml      # AWS Secrets Manager 연결
-│   │       │   └── secret-contract.yaml   # ExternalSecret 정의
+│   │       ├── _disabled/                 # dev 미사용 (prod 승격 시 활성화)
+│   │       │   └── external-secrets/      # AWS Secrets Manager 연동 매니페스트
+│   │       │       ├── secret-store.yaml  # AWS Secrets Manager 연결
+│   │       │       └── secret-contract.yaml # ExternalSecret 정의
 │   │       └── monitoring/
 │   │           ├── podmonitors.yaml       # 4개 서비스 PodMonitor
 │   │           ├── mock-trading-platform-alerts.yaml   # PrometheusRule (5xx, p99, restart)
@@ -29,12 +30,11 @@ mock-trading-platform-gitops/
 │   │           └── dashboard-infrastructure.yaml    # Grafana 인프라 대시보드
 │   └── applications/
 │       └── dev/
+│           ├── _disabled/                 # dev 미사용 (external-secrets, secret-contract)
 │           ├── aws-load-balancer-controller.yaml # sync-wave 1
 │           ├── metrics-server.yaml        # sync-wave 1
-│           ├── external-secrets.yaml      # sync-wave 1
 │           ├── postgres.yaml              # sync-wave 1
 │           ├── nats.yaml                  # sync-wave 1
-│           ├── secret-contract.yaml       # sync-wave 2
 │           ├── auth-service.yaml          # sync-wave 2
 │           ├── order-service.yaml         # sync-wave 3
 │           ├── wallet-service.yaml        # sync-wave 3
@@ -121,14 +121,21 @@ sync-wave annotation으로 배포 순서를 제어한다.
 
 | sync-wave | 대상                                                                           | 이유                                                                       |
 | --------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| 1         | aws-load-balancer-controller, metrics-server, external-secrets, postgres, nats | 인프라/플랫폼 의존성 — 앱 서비스의 전제 조건                               |
-| 2         | secret-contract, auth-service                                                  | 시크릿 생성 + 인증 서비스 — 다른 서비스에서 JWT 검증에 필요                |
+| 1         | aws-load-balancer-controller, metrics-server, postgres, nats                   | 인프라/플랫폼 의존성 — 앱 서비스의 전제 조건                               |
+| 2         | auth-service                                                                   | 인증 서비스 — 다른 서비스에서 JWT 검증에 필요                              |
 | 3         | order-service, wallet-service, marketdata-service, frontend                    | 비즈니스 서비스                                                            |
 | 4         | mock-trading-platform-ingress                                                  | API/프론트엔드 단일 진입 라우팅                                            |
 | 5         | kube-prometheus-stack, loki, alloy                                             | 관측성 플랫폼 (Prometheus + Grafana CRD, Loki ingester, Alloy 로그 수집기) |
 | 6         | mock-trading-platform-monitoring                                               | 도메인 PodMonitor / PrometheusRule / Grafana 대시보드 — wave 5 의 CRD 필요 |
 
 ArgoCD는 wave 1의 리소스가 Healthy 상태가 된 후 wave 2로 진행한다.
+
+> **참고**: dev 환경에서는 ExternalSecrets Operator (`external-secrets`, `secret-contract`)를
+> 비활성화한 상태이다. 매니페스트는 `argocd/applications/dev/_disabled/` 와
+> `argocd/manifests/dev/_disabled/` 에 보존되어 있다. IRSA assume role 이 준비되지
+> 않은 상태로 활성화하면 SecretStore 가 인증에 실패해 Application 이 Degraded 로
+> 남는다. production 승격 시 IRSA role 을 생성하고 `_disabled/` 밖으로 이동시켜
+> 다시 활성화한다. 현재 dev 시크릿은 values 리터럴로 주입한다.
 
 ---
 
