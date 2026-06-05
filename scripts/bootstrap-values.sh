@@ -79,7 +79,10 @@ else
 fi
 
 # ── 필수 값 검증 ──
-REQUIRED=(AWS_ACCOUNT_ID AWS_REGION EKS_CLUSTER_NAME AWS_VPC_ID AWS_LBC_IRSA_ROLE_ARN GITHUB_USER GITHUB_PAT)
+# GITHUB_USER / GITHUB_PAT 는 여기에 넣지 않는다. 이 값들은 private repo 의
+# ArgoCD repository Secret 렌더링에만 쓰이고, public repo 부트스트랩에서는
+# 필요 없다. AWS/ECR/ALB 치환은 자격증명 유무와 무관하게 항상 수행돼야 한다.
+REQUIRED=(AWS_ACCOUNT_ID AWS_REGION EKS_CLUSTER_NAME AWS_VPC_ID AWS_LBC_IRSA_ROLE_ARN)
 MISSING=()
 for var in "${REQUIRED[@]}"; do
   [[ -z "${!var:-}" ]] && MISSING+=("$var")
@@ -132,18 +135,26 @@ find "$REPO_ROOT" -type f -name '*.yaml' -not -path '*/.git/*' | xargs sed -i \
 # 결과물은 PAT 평문을 담으므로 .gitignore 로 추적 제외돼 있다.
 # 위 sed 패스는 '*.yaml' 만 잡으므로 .tmpl 원본은 건드리지 않는다.
 REPO_TMPL_DIR="${REPO_ROOT}/argocd/repositories"
+RENDERED_REPO_SECRETS=0
 if [[ -d "$REPO_TMPL_DIR" ]]; then
-  echo "▶ ArgoCD repository Secret 렌더링"
-  shopt -s nullglob
-  for tmpl in "$REPO_TMPL_DIR"/*.yaml.tmpl; do
-    out="${tmpl%.tmpl}"
-    sed \
-      -e "s|<GITHUB_USER>|${GITHUB_USER}|g" \
-      -e "s|<GITHUB_PAT>|${GITHUB_PAT}|g" \
-      "$tmpl" > "$out"
-    echo "  ✓ $(basename "$out")"
-  done
-  shopt -u nullglob
+  if [[ -n "${GITHUB_USER:-}" && -n "${GITHUB_PAT:-}" ]]; then
+    echo "▶ ArgoCD repository Secret 렌더링"
+    shopt -s nullglob
+    for tmpl in "$REPO_TMPL_DIR"/*.yaml.tmpl; do
+      out="${tmpl%.tmpl}"
+      sed \
+        -e "s|<GITHUB_USER>|${GITHUB_USER}|g" \
+        -e "s|<GITHUB_PAT>|${GITHUB_PAT}|g" \
+        "$tmpl" > "$out"
+      echo "  ✓ $(basename "$out")"
+      RENDERED_REPO_SECRETS=1
+    done
+    shopt -u nullglob
+  else
+    echo "▶ ArgoCD repository Secret 렌더링 생략 (GITHUB_USER/GITHUB_PAT 미설정)"
+    echo "  public repo 거나 repo 가 이미 등록된 경우 정상이다. private repo"
+    echo "  등록이 필요하면 .env 에 GITHUB_USER/GITHUB_PAT 를 채우고 다시 실행한다."
+  fi
 fi
 
 echo ""
@@ -154,4 +165,6 @@ echo "다음 단계:"
 echo "  git diff                                    # 변경 내용 확인"
 echo "  git commit -am 'bootstrap: set dev values'  # 커밋"
 echo "  git push                                    # ArgoCD 반영"
-echo "  kubectl apply -n argocd -f argocd/repositories/  # repo 등록"
+if [[ "$RENDERED_REPO_SECRETS" -eq 1 ]]; then
+  echo "  kubectl apply -n argocd -f argocd/repositories/  # repo 등록"
+fi
