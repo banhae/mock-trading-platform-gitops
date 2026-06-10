@@ -20,7 +20,8 @@ cd "$(git rev-parse --show-toplevel)"
 #   - 구체 VPC ID → 문서 예시값(vpc-0abc123def)과 충돌 + exchange VPC 는 rotate 라 마커 부적합.
 #     (mock 은 <AWS_VPC_ID> placeholder 유지가 원칙이나, 이는 가드가 아닌 SYNC.md 규칙으로 다룬다.)
 PATTERNS=(
-  'exchange-(dev|app|gitops|infra)'   # upstream resource/repo 네이밍 변환 누락
+  'exchange-(dev|app|gitops|infra)'   # upstream resource/repo 네이밍 변환 누락 (하이픈)
+  'exchange/[a-z]'                     # ECR 이미지 네임스페이스 exchange/<svc> (슬래시)
   '483842757576'                       # exchange dev AWS account ID
 )
 
