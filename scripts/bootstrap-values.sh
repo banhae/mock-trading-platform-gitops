@@ -130,6 +130,24 @@ find "$REPO_ROOT" -type f -name '*.yaml' -not -path '*/.git/*' | xargs sed -i \
   -e "s|<DEV_NATS_URL>|${DEV_NATS_URL:-nats://mock-trading-platform-dev-nats:4222}|g" \
   -e "s|<DEV_NATS_TOKEN>|${DEV_NATS_TOKEN:-}|g"
 
+# ── vpcId 재동기화 (idempotent) ──
+# 위 placeholder sed 는 <AWS_VPC_ID> 토큰이 남아있을 때만 동작한다(최초 1회).
+# 클러스터 destroy/recreate 시 VPC ID 가 새로 할당되는데, 이미 구체값이 구워진
+# aws-load-balancer-controller.yaml 은 placeholder 가 없어 stale 되고, 컨트롤러가
+# 옛 VPC 에서 서브넷을 못 찾아 ALB 가 안 뜬다. 따라서 vpcId: 줄을 매 실행 terraform
+# 현재값으로 무조건 덮어써 이 drift 를 없앤다. 재생성 후에도 이 스크립트만 재실행하면
+# vpcId 가 자동 동기화된다.
+#
+# IMDS hop=2 로 컨트롤러가 VPC 를 자동탐지하게 하는 대안은 노드 instance-profile
+# 자격증명을 그 노드의 모든 파드에 노출하는 보안 후퇴라(http_tokens=required 로도
+# 안 막힘) 채택하지 않는다. EKS 기본 hop=1(파드 IMDS 차단)을 유지하고 이 재동기화로
+# drift 를 해결한다.
+LBC_APP="${REPO_ROOT}/argocd/applications/dev/aws-load-balancer-controller.yaml"
+if [[ -f "$LBC_APP" ]]; then
+  sed -i -E "s|^([[:space:]]*vpcId:[[:space:]]*).*|\1${AWS_VPC_ID}|" "$LBC_APP"
+  echo "▶ vpcId 재동기화: ${AWS_VPC_ID}"
+fi
+
 # ── ArgoCD repository Secret template 렌더링 ──
 # argocd/repositories/*.yaml.tmpl → 같은 디렉터리의 *.yaml.
 # 결과물은 PAT 평문을 담으므로 .gitignore 로 추적 제외돼 있다.
