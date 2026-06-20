@@ -14,6 +14,9 @@ fullnameOverride: auth-service
 service:
   type: ClusterIP
 
-env:
-  # dev 전용 리터럴. ExternalSecrets 연동 후 secretRef로 전환 예정
-  JWT_SECRET: "dev-jwt-secret-change-me"
+# JWT_SECRET 은 ExternalSecret(auth-jwt)이 생성한 K8s Secret 에서 envFrom 으로 공급한다.
+# 차트의 빈값 skip 가드 덕에 literal JWT_SECRET 은 제거해도 됨(envFrom 값이 그대로 적용).
+# DEV_MODE 등 나머지 env 는 차트 기본값(DEV_MODE=true: 데모 dev/dev 로그인) 사용.
+envFrom:
+  - secretRef:
+      name: auth-jwt
