@@ -23,8 +23,16 @@ autoscaling:
   enabled: false
 
 env:
-  # dev 전용 리터럴. ExternalSecrets 연동 후 secretRef로 전환 예정
+  # DEV_MODE=false: 인증 우회 차단. devMode 시 JWT 검증을 skip 하고 dev-user 를 주입하므로
+  # (middleware.go), 공개 ALB 뒤에서 무인증 주문 생성/취소가 가능해진다. 명시적으로 끈다.
+  DEV_MODE: "false"
+  # JWT_SECRET 은 ExternalSecret(auth-jwt) → K8s Secret 을 envFrom 으로 공급(아래). literal 제거.
+  # DATABASE_URL/NATS_URL 은 auth-jwt 범위 밖이라 literal 유지(DB/NATS ESO 는 후속 별건).
   DATABASE_URL: "postgresql://postgres:dev-db-password-change-me@mock-trading-platform-dev-postgres-postgresql:5432/mock_trading_platform?sslmode=disable"
-  JWT_SECRET: "dev-jwt-secret-change-me"
   EVENT_BUS_ENABLED: "true"
   NATS_URL: "nats://mock-trading-platform-dev-nats:4222"
+
+# auth-service 와 동일한 auth-jwt Secret 을 공유 → 같은 JWT_SECRET 으로 서명/검증.
+envFrom:
+  - secretRef:
+      name: auth-jwt
